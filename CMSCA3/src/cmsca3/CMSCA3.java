@@ -18,7 +18,6 @@ public class CMSCA3 {
             try {
                     Class.forName("com.mysql.jdbc.Driver");
             } catch (ClassNotFoundException e2) {
-                    // Handle exception if neither class is found
                 }
             }
 
