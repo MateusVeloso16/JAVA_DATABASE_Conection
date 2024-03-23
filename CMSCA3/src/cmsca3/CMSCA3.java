@@ -1,4 +1,5 @@
 package cmsca3;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -12,16 +13,6 @@ public class CMSCA3 {
 
     public static void main(String[] args) {
         try {
-            try {
-                Class.forName("com.mysql.cj.jdbc.Driver");
-            } catch (ClassNotFoundException e1) {
-            try {
-                    Class.forName("com.mysql.jdbc.Driver");
-            } catch (ClassNotFoundException e2) {
-                }
-            }
-
-
             try (Connection connection = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
                  Statement statement = connection.createStatement()) {
 
@@ -30,7 +21,7 @@ public class CMSCA3 {
                 System.out.println("Database CMSCA3 created successfully");
             }
         } catch (SQLException e) {
-            
+            e.printStackTrace(); // Print stack trace for debugging
         }
     }
 }
