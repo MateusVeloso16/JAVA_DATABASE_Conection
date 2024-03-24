@@ -6,6 +6,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.LinkedList;
 import java.util.Scanner;
 
 public class CMSCA3 {
@@ -17,7 +18,6 @@ public class CMSCA3 {
 
     public static void main(String[] args) {
         try ( Scanner scanner = new Scanner(System.in)) {
-
             try ( Connection connection = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);  Statement statement = connection.createStatement()) {
 
                 String createDatabaseSql = "CREATE DATABASE IF NOT EXISTS " + DATABASE_NAME;
@@ -41,7 +41,7 @@ public class CMSCA3 {
                         insertData(scanner, statement);
                         break;
                     case 2:
-                        accessReport(scanner, statement);
+                        accessReport(scanner, connection, statement); // Call accessReport with correct parameters
                         break;
                     default:
                         System.out.println("Invalid choice!");
@@ -53,7 +53,6 @@ public class CMSCA3 {
     }
 
     private static void createTables(Statement statement) throws SQLException {
-        // Create course_report table
         String createCourseReportSql = "CREATE TABLE IF NOT EXISTS course_report ("
                 + "module_name VARCHAR(255), "
                 + "programme VARCHAR(255), "
@@ -63,7 +62,6 @@ public class CMSCA3 {
         statement.executeUpdate(createCourseReportSql);
         System.out.println("Table course_report created successfully");
 
-        // Create student_report table
         String createStudentReportSql = "CREATE TABLE IF NOT EXISTS student_report ("
                 + "student_name VARCHAR(255), "
                 + "student_number VARCHAR(20), "
@@ -74,7 +72,6 @@ public class CMSCA3 {
         statement.executeUpdate(createStudentReportSql);
         System.out.println("Table student_report created successfully");
 
-        // Create lecturer_report table
         String createLecturerReportSql = "CREATE TABLE IF NOT EXISTS lecturer_report ("
                 + "lecturer_name VARCHAR(255), "
                 + "role VARCHAR(50), "
@@ -114,7 +111,7 @@ public class CMSCA3 {
         System.out.println("Enter current modules:");
         String currentModules = scanner.nextLine();
         System.out.println("Enter completed modules:");
-        String completedModules = scanner.nextLine(); // Change to 'completed_modules'
+        String completedModules = scanner.nextLine();
         System.out.println("Enter modules to repeat:");
         String modulesToRepeat = scanner.nextLine();
 
@@ -143,7 +140,7 @@ public class CMSCA3 {
         System.out.println("Data inserted into lecturer_report table successfully");
     }
 
-    private static void accessReport(Scanner scanner, Statement statement) throws SQLException {
+    private static void accessReport(Scanner scanner, Connection connection, Statement statement) throws SQLException {
         System.out.println("Choose a report to access:");
         System.out.println("1. Course Report");
         System.out.println("2. Student Report");
@@ -154,33 +151,54 @@ public class CMSCA3 {
 
         switch (choice) {
             case 1:
-                displayTable(statement, "course_report");
+                displayTable(connection, statement, "course_report");
                 break;
             case 2:
-                displayTable(statement, "student_report");
+                displayTable(connection, statement, "student_report");
                 break;
             case 3:
-                displayTable(statement, "lecturer_report");
+                displayTable(connection, statement, "lecturer_report");
                 break;
             default:
                 System.out.println("Invalid choice!");
         }
     }
 
-    private static void displayTable(Statement statement, String tableName) throws SQLException {
+    private static void displayTable(Connection connection, Statement statement, String tableName) throws SQLException {
         String query = "SELECT * FROM " + tableName;
         ResultSet resultSet = statement.executeQuery(query);
 
         ResultSetMetaData metaData = resultSet.getMetaData();
         int columnCount = metaData.getColumnCount();
+
+        int[] columnWidths = new int[columnCount];
+
         for (int i = 1; i <= columnCount; i++) {
-            System.out.print(metaData.getColumnName(i) + "\t");
+            columnWidths[i - 1] = metaData.getColumnName(i).length(); // Start with column name length
+        }
+
+        LinkedList<String[]> rows = new LinkedList<>();
+
+        while (resultSet.next()) {
+            String[] row = new String[columnCount];
+            for (int i = 1; i <= columnCount; i++) {
+                String value = resultSet.getString(i);
+                row[i - 1] = value;
+                if (value != null && value.length() > columnWidths[i - 1]) {
+                    columnWidths[i - 1] = value.length();
+                }
+            }
+            rows.add(row);
+        }
+
+        for (int i = 1; i <= columnCount; i++) {
+            System.out.printf("%-" + (columnWidths[i - 1] + 2) + "s", metaData.getColumnName(i));
         }
         System.out.println();
 
-        while (resultSet.next()) {
-            for (int i = 1; i <= columnCount; i++) {
-                System.out.print(resultSet.getString(i) + "\t");
+        for (String[] row : rows) {
+            for (int i = 0; i < columnCount; i++) {
+                System.out.printf("%-" + (columnWidths[i] + 2) + "s", row[i]);
             }
             System.out.println();
         }
