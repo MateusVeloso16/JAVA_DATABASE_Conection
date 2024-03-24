@@ -24,6 +24,8 @@ public class CMSCA3 {
 
                 String useDatabaseSql = "USE " + DATABASE_NAME;
                 statement.executeUpdate(useDatabaseSql);
+                
+                createTables(statement);
 
                 System.out.println("Choose a table to insert data into:");
                 System.out.println("1. course_report");
@@ -51,7 +53,47 @@ public class CMSCA3 {
             e.printStackTrace(); 
         }
     }
+    
+    
+    
+    
+    private static void createTables(Statement statement) throws SQLException {
+        // Create course_report table
+        String createCourseReportSql = "CREATE TABLE IF NOT EXISTS course_report ("
+                + "module_name VARCHAR(255), "
+                + "programme VARCHAR(255), "
+                + "enrolled_students INT, "
+                + "lecturer VARCHAR(255), "
+                + "room VARCHAR(255))";
+        statement.executeUpdate(createCourseReportSql);
+        System.out.println("Table course_report created successfully");
 
+        // Create student_report table
+        String createStudentReportSql = "CREATE TABLE IF NOT EXISTS student_report ("
+                + "student_name VARCHAR(255), "
+                + "student_number VARCHAR(20), "
+                + "programme VARCHAR(255), "
+                + "current_modules TEXT, "
+                + "completed_modules_and_grades TEXT, "
+                + "modules_to_repeat TEXT)";
+        statement.executeUpdate(createStudentReportSql);
+        System.out.println("Table student_report created successfully");
+
+        // Create lecturer_report table
+        String createLecturerReportSql = "CREATE TABLE IF NOT EXISTS lecturer_report ("
+                + "lecturer_name VARCHAR(255), "
+                + "role VARCHAR(50), "
+                + "modules_taught TEXT, "
+                + "student_count INT, "
+                + "classes_teachable TEXT)";
+        statement.executeUpdate(createLecturerReportSql);
+        System.out.println("Table lecturer_report created successfully");
+    }
+    
+    
+    
+    
+    
     private static void insertDataIntoCourseReport(Statement statement, Scanner scanner) throws SQLException {
         System.out.println("Enter module name:");
         String moduleName = scanner.nextLine();
