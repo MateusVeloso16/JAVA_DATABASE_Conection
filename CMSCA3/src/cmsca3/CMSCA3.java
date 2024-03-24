@@ -23,38 +23,99 @@ public class CMSCA3 {
     @SuppressWarnings("CallToPrintStackTrace")
     public static void main(String[] args) {
         try ( Scanner scanner = new Scanner(System.in)) {
-            try ( Connection connection = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);  Statement statement = connection.createStatement()) {
+            System.out.println("Welcome to CMSCA3 System");
 
-                String createDatabaseSql = "CREATE DATABASE IF NOT EXISTS " + DATABASE_NAME;
-                statement.executeUpdate(createDatabaseSql);
-                System.out.println("Database " + DATABASE_NAME + " created successfully");
-
-                String useDatabaseSql = "USE " + DATABASE_NAME;
-                statement.executeUpdate(useDatabaseSql);
-
-                createTables(statement);
-
-                System.out.println("Choose an action:");
-                System.out.println("1. Insert data into a table");
-                System.out.println("2. Access report");
-                System.out.print("Enter your choice (1 or 2): ");
+            UserProfile currentUser = null;
+            while (currentUser == null) {
+                System.out.println("Choose user profile:");
+                System.out.println("1. Admin");
+                System.out.println("2. Office");
+                System.out.println("3. Lecture");
+                System.out.print("Enter your choice (1, 2, or 3): ");
                 int choice = scanner.nextInt();
                 scanner.nextLine();
 
                 switch (choice) {
                     case 1:
-                        insertData(scanner, statement);
+                        System.out.println("Admin login:");
+                        currentUser = authenticateUser(scanner);
                         break;
                     case 2:
-                        accessReport(scanner, connection, statement);
+                        System.out.println("Office login:");
+                        currentUser = authenticateUser(scanner);
+                        break;
+                    case 3:
+                        System.out.println("Lecture login:");
+                        currentUser = authenticateUser(scanner);
                         break;
                     default:
                         System.out.println("Invalid choice!");
                 }
+
+                if (currentUser == null) {
+                    System.out.println("Login failed. Please try again.");
+                }
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
+
+            System.out.println("Login successful! Proceeding with the system...");
+            try ( Connection connection = DriverManager.getConnection(JDBC_URL + DATABASE_NAME, USER, PASSWORD);  Statement statement = connection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
+                createTables(statement); // Create tables if they don't exist
+                boolean running = true;
+                while (running) {
+                    System.out.println("Choose an action:");
+                    System.out.println("1. Insert data");
+                    System.out.println("2. Access reports");
+                    System.out.println("3. Exit");
+                    System.out.print("Enter your choice (1, 2, or 3): ");
+                    int actionChoice = scanner.nextInt();
+                    scanner.nextLine();
+                    switch (actionChoice) {
+                        case 1:
+                            insertData(scanner, statement);
+                            break;
+                        case 2:
+                            accessReport(scanner, connection, statement);
+                            break;
+                        case 3:
+                            System.out.println("Exiting CMSCA3 System...");
+                            running = false;
+                            break;
+                        default:
+                            System.out.println("Invalid choice!");
+                    }
+                }
+            } catch (SQLException e) {
+                System.out.println("An error occurred: " + e.getMessage());
+                e.printStackTrace();
+            }
         }
+    }
+
+    private static UserProfile authenticateUser(Scanner scanner) {
+        int attempts = 3;
+        while (attempts > 0) {
+            System.out.print("Enter username: ");
+            String username = scanner.nextLine();
+            System.out.print("Enter password: ");
+            String password = scanner.nextLine();
+
+            UserProfile[] userProfiles = {
+                new UserProfile("admin", "java"),
+                new UserProfile("office", "java"),
+                new UserProfile("lecture", "java")
+            };
+
+            for (UserProfile userProfile : userProfiles) {
+                if (userProfile.getUsername().equals(username) && userProfile.getPassword().equals(password)) {
+                    return userProfile;
+                }
+            }
+
+            System.out.println("Invalid username or password. Please try again.");
+            attempts--;
+        }
+
+        return null;
     }
 
     private static void createTables(Statement statement) throws SQLException {
@@ -342,4 +403,22 @@ public class CMSCA3 {
         }
     }
 
+    private static class UserProfile {
+
+        private final String username;
+        private final String password;
+
+        public UserProfile(String username, String password) {
+            this.username = username;
+            this.password = password;
+        }
+
+        public String getUsername() {
+            return username;
+        }
+
+        public String getPassword() {
+            return password;
+        }
+    }
 }
