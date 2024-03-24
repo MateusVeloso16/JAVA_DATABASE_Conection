@@ -1,5 +1,7 @@
 package cmsca3;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -8,6 +10,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.LinkedList;
 import java.util.Scanner;
+import java.awt.Desktop;
+import java.io.File;
 
 public class CMSCA3 {
 
@@ -16,6 +20,7 @@ public class CMSCA3 {
     private static final String USER = "root";
     private static final String PASSWORD = "Carrapato1";
 
+    @SuppressWarnings("CallToPrintStackTrace")
     public static void main(String[] args) {
         try ( Scanner scanner = new Scanner(System.in)) {
             try ( Connection connection = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);  Statement statement = connection.createStatement()) {
@@ -41,7 +46,7 @@ public class CMSCA3 {
                         insertData(scanner, statement);
                         break;
                     case 2:
-                        accessReport(scanner, connection, statement); // Call accessReport with correct parameters
+                        accessReport(scanner, connection, statement);
                         break;
                     default:
                         System.out.println("Invalid choice!");
@@ -89,7 +94,7 @@ public class CMSCA3 {
         String programme = scanner.nextLine();
         System.out.println("Enter enrolled students:");
         int enrolledStudents = scanner.nextInt();
-        scanner.nextLine(); // Consume newline
+        scanner.nextLine();
         System.out.println("Enter lecturer:");
         String lecturer = scanner.nextLine();
         System.out.println("Enter room:");
@@ -151,13 +156,13 @@ public class CMSCA3 {
 
         switch (choice) {
             case 1:
-                displayTable(connection, statement, "course_report");
+                displayReport(connection, statement, "course_report", scanner);
                 break;
             case 2:
-                displayTable(connection, statement, "student_report");
+                displayReport(connection, statement, "student_report", scanner);
                 break;
             case 3:
-                displayTable(connection, statement, "lecturer_report");
+                displayReport(connection, statement, "lecturer_report", scanner);
                 break;
             default:
                 System.out.println("Invalid choice!");
@@ -174,7 +179,7 @@ public class CMSCA3 {
         int[] columnWidths = new int[columnCount];
 
         for (int i = 1; i <= columnCount; i++) {
-            columnWidths[i - 1] = metaData.getColumnName(i).length(); // Start with column name length
+            columnWidths[i - 1] = metaData.getColumnName(i).length();
         }
 
         LinkedList<String[]> rows = new LinkedList<>();
@@ -225,6 +230,115 @@ public class CMSCA3 {
                 break;
             default:
                 System.out.println("Invalid choice!");
+        }
+    }
+
+    private static void displayReport(Connection connection, Statement statement, String tableName, Scanner scanner) throws SQLException {
+        System.out.println("Choose output format:");
+        System.out.println("A. Console");
+        System.out.println("B. CSV File");
+        System.out.println("C. TXT File");
+        System.out.print("Enter your choice (A, B, or C): ");
+        String choice = scanner.nextLine().toUpperCase();
+
+        switch (choice) {
+            case "A":
+                displayTable(connection, statement, tableName);
+                break;
+            case "B":
+                exportToCSV(connection, statement, tableName);
+                break;
+            case "C":
+                exportToTXT(connection, statement, tableName);
+                break;
+            default:
+                System.out.println("Invalid choice!");
+        }
+    }
+
+    @SuppressWarnings("CallToPrintStackTrace")
+    private static void exportToCSV(Connection connection, Statement statement, String tableName) throws SQLException {
+        try ( FileWriter writer = new FileWriter(tableName + ".csv")) {
+            ResultSet resultSet = statement.executeQuery("SELECT * FROM " + tableName);
+            ResultSetMetaData metaData = resultSet.getMetaData();
+            int columnCount = metaData.getColumnCount();
+
+            for (int i = 1; i <= columnCount; i++) {
+                writer.append(metaData.getColumnName(i));
+                if (i < columnCount) {
+                    writer.append(",");
+                }
+            }
+            writer.append("\n");
+
+            while (resultSet.next()) {
+                for (int i = 1; i <= columnCount; i++) {
+                    writer.append(resultSet.getString(i));
+                    if (i < columnCount) {
+                        writer.append(",");
+                    }
+                }
+                writer.append("\n");
+            }
+
+            System.out.println("Data exported to " + tableName + ".csv successfully");
+
+            if (Desktop.isDesktopSupported()) {
+                try {
+                    File file = new File(tableName + ".csv");
+                    Desktop.getDesktop().open(file);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            } else {
+                System.out.println("Opening files in NetBeans is not supported on this platform.");
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @SuppressWarnings("CallToPrintStackTrace")
+    private static void exportToTXT(Connection connection, Statement statement, String tableName) throws SQLException {
+        try ( FileWriter writer = new FileWriter(tableName + ".txt")) {
+            ResultSet resultSet = statement.executeQuery("SELECT * FROM " + tableName);
+            ResultSetMetaData metaData = resultSet.getMetaData();
+            int columnCount = metaData.getColumnCount();
+
+            for (int i = 1; i <= columnCount; i++) {
+                writer.append(metaData.getColumnName(i));
+                if (i < columnCount) {
+                    writer.append("\t");
+                }
+            }
+            writer.append("\n");
+
+            while (resultSet.next()) {
+                for (int i = 1; i <= columnCount; i++) {
+                    writer.append(resultSet.getString(i));
+                    if (i < columnCount) {
+                        writer.append("\t");
+                    }
+                }
+                writer.append("\n");
+            }
+
+            System.out.println("Data exported to " + tableName + ".txt successfully");
+
+            if (Desktop.isDesktopSupported()) {
+                try {
+                    File file = new File(tableName + ".txt");
+                    Desktop.getDesktop().open(file);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            } else {
+                System.out.println("Opening files in NetBeans is not supported on this platform.");
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
