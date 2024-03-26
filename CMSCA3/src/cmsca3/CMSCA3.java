@@ -56,7 +56,7 @@ public class CMSCA3 {
 
             System.out.println("Login successful! Proceeding with the system...");
             try ( Connection connection = DriverManager.getConnection(JDBC_URL + DATABASE_NAME, USER, PASSWORD);  Statement statement = connection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
-                createTables(statement); // Create tables if they don't exist
+                createTables(statement); 
                 boolean running = true;
                 while (running) {
                     System.out.println("Choose an action:");
@@ -399,7 +399,6 @@ public class CMSCA3 {
         System.out.print("Enter password: ");
         String password = scanner.nextLine();
 
-        // Add new username and password here
         if (("admin1".equals(username) && "java1".equals(password))
                 || ("admin2".equals(username) && "java2".equals(password))
                 || ("admin3".equals(username) && "java3".equals(password))) {
@@ -416,7 +415,6 @@ public class CMSCA3 {
         System.out.print("Enter password: ");
         String password = scanner.nextLine();
 
-        // Dummy validation, replace with actual logic
         if (("office1".equals(username) && "java1".equals(password))
                 || ("office2".equals(username) && "java2".equals(password))
                 || ("office3".equals(username) && "java3".equals(password))) {
@@ -433,7 +431,6 @@ public class CMSCA3 {
         System.out.print("Enter password: ");
         String password = scanner.nextLine();
 
-        // Dummy validation, replace with actual logic
         if (("lecture1".equals(username) && "java1".equals(password))
                 || ("lecture2".equals(username) && "java2".equals(password))
                 || ("lecture3".equals(username) && "java3".equals(password))) {
