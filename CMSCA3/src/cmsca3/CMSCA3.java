@@ -37,16 +37,13 @@ public class CMSCA3 {
 
                 switch (choice) {
                     case 1:
-                        System.out.println("Admin login:");
-                        currentUser = authenticateUser(scanner);
+                        currentUser = authenticateUser(scanner, "admin");
                         break;
                     case 2:
-                        System.out.println("Office login:");
-                        currentUser = authenticateUser(scanner);
+                        currentUser = authenticateUser(scanner, "office");
                         break;
                     case 3:
-                        System.out.println("Lecture login:");
-                        currentUser = authenticateUser(scanner);
+                        currentUser = authenticateUser(scanner, "lecture");
                         break;
                     default:
                         System.out.println("Invalid choice!");
@@ -89,33 +86,6 @@ public class CMSCA3 {
                 e.printStackTrace();
             }
         }
-    }
-
-    private static UserProfile authenticateUser(Scanner scanner) {
-        int attempts = 3;
-        while (attempts > 0) {
-            System.out.print("Enter username: ");
-            String username = scanner.nextLine();
-            System.out.print("Enter password: ");
-            String password = scanner.nextLine();
-
-            UserProfile[] userProfiles = {
-                new UserProfile("admin", "java"),
-                new UserProfile("office", "java"),
-                new UserProfile("lecture", "java")
-            };
-
-            for (UserProfile userProfile : userProfiles) {
-                if (userProfile.getUsername().equals(username) && userProfile.getPassword().equals(password)) {
-                    return userProfile;
-                }
-            }
-
-            System.out.println("Invalid username or password. Please try again.");
-            attempts--;
-        }
-
-        return null;
     }
 
     private static void createTables(Statement statement) throws SQLException {
@@ -421,4 +391,70 @@ public class CMSCA3 {
             return password;
         }
     }
+
+    private static UserProfile authenticateAdmin(Scanner scanner) {
+        System.out.println("Admin login:");
+        System.out.print("Enter username: ");
+        String username = scanner.nextLine();
+        System.out.print("Enter password: ");
+        String password = scanner.nextLine();
+
+        // Add new username and password here
+        if (("admin1".equals(username) && "java1".equals(password))
+                || ("admin2".equals(username) && "java2".equals(password))
+                || ("admin3".equals(username) && "java3".equals(password))) {
+            return new UserProfile(username, password);
+        } else {
+            return null;
+        }
+    }
+
+    private static UserProfile authenticateOffice(Scanner scanner) {
+        System.out.println("Office login:");
+        System.out.print("Enter username: ");
+        String username = scanner.nextLine();
+        System.out.print("Enter password: ");
+        String password = scanner.nextLine();
+
+        // Dummy validation, replace with actual logic
+        if (("office1".equals(username) && "java1".equals(password))
+                || ("office2".equals(username) && "java2".equals(password))
+                || ("office3".equals(username) && "java3".equals(password))) {
+            return new UserProfile(username, password);
+        } else {
+            return null;
+        }
+    }
+
+    private static UserProfile authenticateLecture(Scanner scanner) {
+        System.out.println("Lecture login:");
+        System.out.print("Enter username: ");
+        String username = scanner.nextLine();
+        System.out.print("Enter password: ");
+        String password = scanner.nextLine();
+
+        // Dummy validation, replace with actual logic
+        if (("lecture1".equals(username) && "java1".equals(password))
+                || ("lecture2".equals(username) && "java2".equals(password))
+                || ("lecture3".equals(username) && "java3".equals(password))) {
+            return new UserProfile(username, password);
+        } else {
+            return null;
+        }
+    }
+
+    private static UserProfile authenticateUser(Scanner scanner, String profileType) {
+        switch (profileType.toLowerCase()) {
+            case "admin":
+                return authenticateAdmin(scanner);
+            case "office":
+                return authenticateOffice(scanner);
+            case "lecture":
+                return authenticateLecture(scanner);
+            default:
+                System.out.println("Invalid profile type!");
+                return null;
+        }
+    }
+
 }
