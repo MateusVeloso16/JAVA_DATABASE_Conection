@@ -90,14 +90,12 @@ public class CMSCA3 {
 
                 boolean running = true;
                 while (running) {
-                    System.out.println();
                     System.out.println("Choose an action:");
                     System.out.println("1. Insert data");
                     System.out.println("2. Access reports");
-                    System.out.println("3. Exit");
-                    System.out.println();
-                    System.out.print("Enter your choice (1, 2, or 3): ");
-                    System.out.println();
+                    System.out.println("3. Delete data");
+                    System.out.println("4. Exit");
+                    System.out.print("Enter your choice (1, 2, 3, or 4): ");
                     int actionChoice = scanner.nextInt();
                     scanner.nextLine();
 
@@ -106,21 +104,24 @@ public class CMSCA3 {
                             if (permissions.contains("insert_data")) {
                                 insertData(scanner, statement);
                             } else {
-                                System.out.println();
                                 System.out.println("You do not have permission to insert data.");
-                                System.out.println();
                             }
                             break;
                         case 2:
                             if (permissions.contains("view_reports")) {
                                 accessReport(scanner, connection, statement);
                             } else {
-                                System.out.println();
                                 System.out.println("You do not have permission to access reports.");
-                                System.out.println();
                             }
                             break;
                         case 3:
+                            if (permissions.contains("delete_data")) {
+                                deleteUserData(statement, scanner);
+                            } else {
+                                System.out.println("You do not have permission to delete data.");
+                            }
+                            break;
+                        case 4:
                             System.out.println("Exiting CMSCA3 System...");
                             running = false;
                             break;
@@ -181,9 +182,9 @@ public class CMSCA3 {
             }
 
             String[][] usersAndPasswordsAndPermissions = {
-                {"admin", "java", "create_tables,insert_data,view_reports,view_table,export_csv,export_txt"},
-                {"office", "java2", "insert_data,view_reports"},
-                {"lecture", "java3", "insert_data,view_reports"}
+                {"admin", "java", "create_tables,insert_data,view_reports,view_table,export_csv,export_txt,delete_data"},
+                {"office", "java2", "view_reports,view_table,export_csv,insert_data,export_txt,delete_data"},
+                {"lecture", "java3", "insert_data,view_reports,view_table,export_csv,export_txt,delete_data"}
             };
 
             for (String[] userAndPasswordAndPermissions : usersAndPasswordsAndPermissions) {
@@ -194,7 +195,7 @@ public class CMSCA3 {
                         + username + "', '" + password + "', '" + permissions + "')";
                 statement.executeUpdate(insertSql);
                 System.out.println();
-                System.out.println("Data inserted into user_credentials table successfully");
+                //System.out.println("Data inserted into user_credentials table successfully");
                 System.out.println();
             }
         } catch (SQLException e) {
@@ -416,6 +417,21 @@ public class CMSCA3 {
                 System.out.println("Invalid choice!");
         }
 
+    }
+
+    private static void deleteUserData(Statement statement, Scanner scanner) throws SQLException {
+        System.out.println("Enter username:");
+        String username = scanner.nextLine();
+        System.out.println("Enter password:");
+        String password = scanner.nextLine();
+
+        String deleteSql = "DELETE FROM user_credentials WHERE username = '" + username + "' AND password = '" + password + "'";
+        int rowsDeleted = statement.executeUpdate(deleteSql);
+        if (rowsDeleted > 0) {
+            System.out.println("User credentials deleted successfully.");
+        } else {
+            System.out.println("No matching user credentials found to delete.");
+        }
     }
 
     private static void displayReport(Connection connection, Statement statement, String tableName, Scanner scanner) throws SQLException {
