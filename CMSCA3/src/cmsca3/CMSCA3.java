@@ -24,39 +24,11 @@ public class CMSCA3 {
     public static void main(String[] args) {
         try ( Scanner scanner = new Scanner(System.in)) {
             System.out.println("Welcome to CMSCA3 System");
-
-            UserProfile currentUser = null;
-            while (currentUser == null) {
-                System.out.println("Choose user profile:");
-                System.out.println("1. Admin");
-                System.out.println("2. Office");
-                System.out.println("3. Lecture");
-                System.out.print("Enter your choice (1, 2, or 3): ");
-                int choice = scanner.nextInt();
-                scanner.nextLine();
-
-                switch (choice) {
-                    case 1:
-                        currentUser = authenticateUser(scanner, "admin");
-                        break;
-                    case 2:
-                        currentUser = authenticateUser(scanner, "office");
-                        break;
-                    case 3:
-                        currentUser = authenticateUser(scanner, "lecture");
-                        break;
-                    default:
-                        System.out.println("Invalid choice!");
-                }
-
-                if (currentUser == null) {
-                    System.out.println("Login failed. Please try again.");
-                }
-            }
-
-            System.out.println("Login successful! Proceeding with the system...");
+            System.out.println("Proceeding with the system...");
             try ( Connection connection = DriverManager.getConnection(JDBC_URL + DATABASE_NAME, USER, PASSWORD);  Statement statement = connection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
-                createTables(statement); 
+                createTables(statement);
+                insertUserCredentials(statement);
+
                 boolean running = true;
                 while (running) {
                     System.out.println("Choose an action:");
@@ -116,6 +88,44 @@ public class CMSCA3 {
                 + "classes_teachable TEXT)";
         statement.executeUpdate(createLecturerReportSql);
         System.out.println("Table lecturer_report created successfully");
+
+        String createUserTableSql = "CREATE TABLE IF NOT EXISTS user_credentials ("
+                + "username VARCHAR(255) PRIMARY KEY, "
+                + "password VARCHAR(255))";
+        statement.executeUpdate(createUserTableSql);
+        System.out.println("Table user_credentials created successfully");
+    }
+
+    @SuppressWarnings({"CallToPrintStackTrace", "CallToPrintStackTrace", "CallToPrintStackTrace"})
+
+    private static void insertUserCredentials(Statement statement) {
+        try {
+            ResultSet resultSet = statement.executeQuery("SELECT COUNT(*) FROM user_credentials");
+            resultSet.next();
+            int rowCount = resultSet.getInt(1);
+            if (rowCount > 0) {
+                System.out.println("User credentials already exist. Skipping insertion.");
+                return;
+            }
+
+            String[][] usersAndPasswords = {
+                {"admin", "java"},
+                {"office", "java2"},
+                {"lecture", "java3"}
+            };
+
+            for (String[] userAndPassword : usersAndPasswords) {
+                String username = userAndPassword[0];
+                String password = userAndPassword[1];
+                String insertSql = "INSERT INTO user_credentials (username, password) VALUES ('"
+                        + username + "', '" + password + "')";
+                statement.executeUpdate(insertSql);
+                System.out.println("Data inserted into user_credentials table successfully");
+            }
+        } catch (SQLException e) {
+            System.out.println("An error occurred while inserting data into user_credentials table: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     private static void insertDataIntoCourseReport(Statement statement, Scanner scanner) throws SQLException {
@@ -370,87 +380,6 @@ public class CMSCA3 {
 
         } catch (IOException e) {
             e.printStackTrace();
-        }
-    }
-
-    private static class UserProfile {
-
-        private final String username;
-        private final String password;
-
-        public UserProfile(String username, String password) {
-            this.username = username;
-            this.password = password;
-        }
-
-        public String getUsername() {
-            return username;
-        }
-
-        public String getPassword() {
-            return password;
-        }
-    }
-
-    private static UserProfile authenticateAdmin(Scanner scanner) {
-        System.out.println("Admin login:");
-        System.out.print("Enter username: ");
-        String username = scanner.nextLine();
-        System.out.print("Enter password: ");
-        String password = scanner.nextLine();
-
-        if (("admin1".equals(username) && "java1".equals(password))
-                || ("admin2".equals(username) && "java2".equals(password))
-                || ("admin3".equals(username) && "java3".equals(password))) {
-            return new UserProfile(username, password);
-        } else {
-            return null;
-        }
-    }
-
-    private static UserProfile authenticateOffice(Scanner scanner) {
-        System.out.println("Office login:");
-        System.out.print("Enter username: ");
-        String username = scanner.nextLine();
-        System.out.print("Enter password: ");
-        String password = scanner.nextLine();
-
-        if (("office1".equals(username) && "java1".equals(password))
-                || ("office2".equals(username) && "java2".equals(password))
-                || ("office3".equals(username) && "java3".equals(password))) {
-            return new UserProfile(username, password);
-        } else {
-            return null;
-        }
-    }
-
-    private static UserProfile authenticateLecture(Scanner scanner) {
-        System.out.println("Lecture login:");
-        System.out.print("Enter username: ");
-        String username = scanner.nextLine();
-        System.out.print("Enter password: ");
-        String password = scanner.nextLine();
-
-        if (("lecture1".equals(username) && "java1".equals(password))
-                || ("lecture2".equals(username) && "java2".equals(password))
-                || ("lecture3".equals(username) && "java3".equals(password))) {
-            return new UserProfile(username, password);
-        } else {
-            return null;
-        }
-    }
-
-    private static UserProfile authenticateUser(Scanner scanner, String profileType) {
-        switch (profileType.toLowerCase()) {
-            case "admin":
-                return authenticateAdmin(scanner);
-            case "office":
-                return authenticateOffice(scanner);
-            case "lecture":
-                return authenticateLecture(scanner);
-            default:
-                System.out.println("Invalid profile type!");
-                return null;
         }
     }
 
