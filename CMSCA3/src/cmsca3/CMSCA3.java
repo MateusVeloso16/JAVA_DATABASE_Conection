@@ -21,29 +21,104 @@ public class CMSCA3 {
     private static final String PASSWORD = "Carrapato1";
 
     @SuppressWarnings("CallToPrintStackTrace")
+    private static String authenticateUser(Scanner scanner) {
+        try {
+            Connection connection = DriverManager.getConnection(JDBC_URL + DATABASE_NAME, USER, PASSWORD);
+            Statement statement = connection.createStatement();
+
+            createTables(statement);
+            insertUserCredentials(statement);
+
+            System.out.println("Select user (only 'Admin' is available):");
+            System.out.print("Enter 'Admin': ");
+            String selectedUser = scanner.nextLine().trim();
+            if (!selectedUser.equalsIgnoreCase("Admin")) {
+                System.out.println("Invalid user. Only 'Admin' is allowed.");
+                return null;
+            }
+
+            System.out.println("Enter username:");
+            String username = scanner.nextLine();
+            System.out.println("Enter password:");
+            String password = scanner.nextLine();
+
+            System.out.println("Entered username: " + username);
+            System.out.println("Entered password: " + password);
+
+            ResultSet resultSet = statement.executeQuery("SELECT * FROM user_credentials WHERE username = '" + username + "' AND password = '" + password + "'");
+            if (resultSet.next()) {
+
+                String permissions = resultSet.getString("permissions");
+                System.out.println("Permissions retrieved from result set: " + permissions);
+
+                System.out.println("Rows found in result set.");
+                System.out.println("Authentication successful. Welcome, Admin!");
+                return resultSet.getString("permissions");
+            } else {
+                if (username.equals("admin") && password.equals("java")) {
+                    System.out.println("No rows found in result set.");
+                    System.out.println("Authentication successful. Welcome, Admin!");
+                    return "create_tables,insert_data,view_reports,view_table,export_csv,export_txt";
+                } else {
+                    System.out.println("Authentication failed. Invalid username or password.");
+                    return null;
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("An error occurred during authentication: " + e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    @SuppressWarnings("CallToPrintStackTrace")
     public static void main(String[] args) {
         try ( Scanner scanner = new Scanner(System.in)) {
             System.out.println("Welcome to CMSCA3 System");
             System.out.println("Proceeding with the system...");
+
             try ( Connection connection = DriverManager.getConnection(JDBC_URL + DATABASE_NAME, USER, PASSWORD);  Statement statement = connection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
+
                 createTables(statement);
                 insertUserCredentials(statement);
 
+                String permissions = authenticateUser(scanner);
+                if (permissions == null) {
+                    System.out.println("Authentication failed. Exiting CMSCA3 System...");
+                    return;
+                }
+
                 boolean running = true;
                 while (running) {
+                    System.out.println();
                     System.out.println("Choose an action:");
                     System.out.println("1. Insert data");
                     System.out.println("2. Access reports");
                     System.out.println("3. Exit");
+                    System.out.println();
                     System.out.print("Enter your choice (1, 2, or 3): ");
+                    System.out.println();
                     int actionChoice = scanner.nextInt();
                     scanner.nextLine();
+
                     switch (actionChoice) {
                         case 1:
-                            insertData(scanner, statement);
+                            if (permissions.contains("insert_data")) {
+                                insertData(scanner, statement);
+                            } else {
+                                System.out.println();
+                                System.out.println("You do not have permission to insert data.");
+                                System.out.println();
+                            }
                             break;
                         case 2:
-                            accessReport(scanner, connection, statement);
+                            if (permissions.contains("view_reports")) {
+                                accessReport(scanner, connection, statement);
+                            } else {
+                                System.out.println();
+                                System.out.println("You do not have permission to access reports.");
+                                System.out.println();
+                            }
                             break;
                         case 3:
                             System.out.println("Exiting CMSCA3 System...");
@@ -61,6 +136,7 @@ public class CMSCA3 {
     }
 
     private static void createTables(Statement statement) throws SQLException {
+
         String createCourseReportSql = "CREATE TABLE IF NOT EXISTS course_report ("
                 + "module_name VARCHAR(255), "
                 + "programme VARCHAR(255), "
@@ -68,7 +144,6 @@ public class CMSCA3 {
                 + "lecturer VARCHAR(255), "
                 + "room VARCHAR(255))";
         statement.executeUpdate(createCourseReportSql);
-        System.out.println("Table course_report created successfully");
 
         String createStudentReportSql = "CREATE TABLE IF NOT EXISTS student_report ("
                 + "student_name VARCHAR(255), "
@@ -78,7 +153,6 @@ public class CMSCA3 {
                 + "completed_modules TEXT, "
                 + "modules_to_repeat TEXT)";
         statement.executeUpdate(createStudentReportSql);
-        System.out.println("Table student_report created successfully");
 
         String createLecturerReportSql = "CREATE TABLE IF NOT EXISTS lecturer_report ("
                 + "lecturer_name VARCHAR(255), "
@@ -87,40 +161,41 @@ public class CMSCA3 {
                 + "student_count INT, "
                 + "classes_teachable TEXT)";
         statement.executeUpdate(createLecturerReportSql);
-        System.out.println("Table lecturer_report created successfully");
 
         String createUserTableSql = "CREATE TABLE IF NOT EXISTS user_credentials ("
                 + "username VARCHAR(255) PRIMARY KEY, "
-                + "password VARCHAR(255))";
+                + "password VARCHAR(255), "
+                + "permissions VARCHAR(255))";
         statement.executeUpdate(createUserTableSql);
-        System.out.println("Table user_credentials created successfully");
+
     }
 
-    @SuppressWarnings({"CallToPrintStackTrace", "CallToPrintStackTrace", "CallToPrintStackTrace"})
-
+    @SuppressWarnings("CallToPrintStackTrace")
     private static void insertUserCredentials(Statement statement) {
         try {
             ResultSet resultSet = statement.executeQuery("SELECT COUNT(*) FROM user_credentials");
             resultSet.next();
             int rowCount = resultSet.getInt(1);
             if (rowCount > 0) {
-                System.out.println("User credentials already exist. Skipping insertion.");
                 return;
             }
 
-            String[][] usersAndPasswords = {
-                {"admin", "java"},
-                {"office", "java2"},
-                {"lecture", "java3"}
+            String[][] usersAndPasswordsAndPermissions = {
+                {"admin", "java", "create_tables,insert_data,view_reports,view_table,export_csv,export_txt"},
+                {"office", "java2", "insert_data,view_reports"},
+                {"lecture", "java3", "insert_data,view_reports"}
             };
 
-            for (String[] userAndPassword : usersAndPasswords) {
-                String username = userAndPassword[0];
-                String password = userAndPassword[1];
-                String insertSql = "INSERT INTO user_credentials (username, password) VALUES ('"
-                        + username + "', '" + password + "')";
+            for (String[] userAndPasswordAndPermissions : usersAndPasswordsAndPermissions) {
+                String username = userAndPasswordAndPermissions[0];
+                String password = userAndPasswordAndPermissions[1];
+                String permissions = userAndPasswordAndPermissions[2];
+                String insertSql = "INSERT INTO user_credentials (username, password, permissions) VALUES ('"
+                        + username + "', '" + password + "', '" + permissions + "')";
                 statement.executeUpdate(insertSql);
+                System.out.println();
                 System.out.println("Data inserted into user_credentials table successfully");
+                System.out.println();
             }
         } catch (SQLException e) {
             System.out.println("An error occurred while inserting data into user_credentials table: " + e.getMessage());
@@ -129,6 +204,8 @@ public class CMSCA3 {
     }
 
     private static void insertDataIntoCourseReport(Statement statement, Scanner scanner) throws SQLException {
+
+        System.out.println();
         System.out.println("Enter module name:");
         String moduleName = scanner.nextLine();
         System.out.println("Enter programme:");
@@ -140,14 +217,17 @@ public class CMSCA3 {
         String lecturer = scanner.nextLine();
         System.out.println("Enter room:");
         String room = scanner.nextLine();
+        System.out.println();
 
         String insertSql = "INSERT INTO course_report (module_name, programme, enrolled_students, lecturer, room) VALUES ('"
                 + moduleName + "', '" + programme + "', " + enrolledStudents + ", '" + lecturer + "', '" + room + "')";
         statement.executeUpdate(insertSql);
         System.out.println("Data inserted into course_report table successfully");
+
     }
 
     private static void insertDataIntoStudentReport(Statement statement, Scanner scanner) throws SQLException {
+
         System.out.println("Enter student name:");
         String studentName = scanner.nextLine();
         System.out.println("Enter student number:");
@@ -165,9 +245,11 @@ public class CMSCA3 {
                 + studentName + "', '" + studentNumber + "', '" + programme + "', '" + currentModules + "', '" + completedModules + "', '" + modulesToRepeat + "')";
         statement.executeUpdate(insertSql);
         System.out.println("Data inserted into student_report table successfully");
+
     }
 
     private static void insertDataIntoLecturerReport(Statement statement, Scanner scanner) throws SQLException {
+
         System.out.println("Enter lecturer name:");
         String lecturerName = scanner.nextLine();
         System.out.println("Enter role:");
@@ -184,14 +266,39 @@ public class CMSCA3 {
                 + lecturerName + "', '" + role + "', '" + modulesTaught + "', " + studentCount + ", '" + classesTeachable + "')";
         statement.executeUpdate(insertSql);
         System.out.println("Data inserted into lecturer_report table successfully");
+
+    }
+
+    private static void insertDataIntoUserCredentials(Statement statement, Scanner scanner) throws SQLException {
+
+        System.out.println("Enter username:");
+        String username = scanner.nextLine();
+        System.out.println("Enter password:");
+        String password = scanner.nextLine();
+        System.out.println("Enter permissions separated by coma and without spaces: create_tables,insert_data,view_reports,view_table,export_csv,export_txt");
+        String permissions = scanner.nextLine();
+
+        ResultSet resultSet = statement.executeQuery("SELECT * FROM user_credentials WHERE username = '" + username + "'");
+        if (resultSet.next()) {
+            System.out.println("Username already exists. Data not inserted.");
+        } else {
+
+            String insertSql = "INSERT INTO user_credentials (username, password,permissions) VALUES ('"
+                    + username + "', '" + password + "', '" + permissions + "')";
+            statement.executeUpdate(insertSql);
+            System.out.println("Data inserted into user_credentials table successfully");
+        }
+
     }
 
     private static void accessReport(Scanner scanner, Connection connection, Statement statement) throws SQLException {
+
         System.out.println("Choose a report to access:");
         System.out.println("1. Course Report");
         System.out.println("2. Student Report");
         System.out.println("3. Lecturer Report");
-        System.out.print("Enter your choice (1, 2, or 3): ");
+        System.out.println("4. User Credentials Report");
+        System.out.print("Enter your choice (1, 2, 3, or 4): ");
         int choice = scanner.nextInt();
         scanner.nextLine();
 
@@ -205,12 +312,42 @@ public class CMSCA3 {
             case 3:
                 displayReport(connection, statement, "lecturer_report", scanner);
                 break;
+            case 4:
+                displayUserCredentials(connection, statement, scanner);
+                break;
             default:
                 System.out.println("Invalid choice!");
         }
+
+    }
+
+    private static void displayUserCredentials(Connection connection, Statement statement, Scanner scanner) throws SQLException {
+
+        System.out.println("Choose output format for User Credentials Report:");
+        System.out.println("A. Console");
+        System.out.println("B. CSV File");
+        System.out.println("C. TXT File");
+        System.out.print("Enter your choice (A, B, or C): ");
+        String choice = scanner.nextLine().toUpperCase();
+
+        switch (choice) {
+            case "A":
+                displayTable(connection, statement, "user_credentials");
+                break;
+            case "B":
+                exportToCSV(connection, statement, "user_credentials");
+                break;
+            case "C":
+                exportToTXT(connection, statement, "user_credentials");
+                break;
+            default:
+                System.out.println("Invalid choice!");
+        }
+
     }
 
     private static void displayTable(Connection connection, Statement statement, String tableName) throws SQLException {
+
         String query = "SELECT * FROM " + tableName;
         ResultSet resultSet = statement.executeQuery(query);
 
@@ -248,14 +385,17 @@ public class CMSCA3 {
             }
             System.out.println();
         }
+
     }
 
     private static void insertData(Scanner scanner, Statement statement) throws SQLException {
+
         System.out.println("Choose a table to insert data into:");
         System.out.println("1. Course Report");
         System.out.println("2. Student Report");
         System.out.println("3. Lecturer Report");
-        System.out.print("Enter your choice (1, 2, or 3): ");
+        System.out.println("4. User Credentials");
+        System.out.print("Enter your choice (1, 2, 3, or 4): ");
         int choice = scanner.nextInt();
         scanner.nextLine();
 
@@ -269,12 +409,17 @@ public class CMSCA3 {
             case 3:
                 insertDataIntoLecturerReport(statement, scanner);
                 break;
+            case 4:
+                insertDataIntoUserCredentials(statement, scanner);
+                break;
             default:
                 System.out.println("Invalid choice!");
         }
+
     }
 
     private static void displayReport(Connection connection, Statement statement, String tableName, Scanner scanner) throws SQLException {
+
         System.out.println("Choose output format:");
         System.out.println("A. Console");
         System.out.println("B. CSV File");
@@ -295,10 +440,12 @@ public class CMSCA3 {
             default:
                 System.out.println("Invalid choice!");
         }
+
     }
 
     @SuppressWarnings("CallToPrintStackTrace")
     private static void exportToCSV(Connection connection, Statement statement, String tableName) throws SQLException {
+
         try ( FileWriter writer = new FileWriter(tableName + ".csv")) {
             ResultSet resultSet = statement.executeQuery("SELECT * FROM " + tableName);
             ResultSetMetaData metaData = resultSet.getMetaData();
@@ -338,10 +485,12 @@ public class CMSCA3 {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
     }
 
     @SuppressWarnings("CallToPrintStackTrace")
     private static void exportToTXT(Connection connection, Statement statement, String tableName) throws SQLException {
+
         try ( FileWriter writer = new FileWriter(tableName + ".txt")) {
             ResultSet resultSet = statement.executeQuery("SELECT * FROM " + tableName);
             ResultSetMetaData metaData = resultSet.getMetaData();
@@ -381,6 +530,7 @@ public class CMSCA3 {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
     }
 
 }
